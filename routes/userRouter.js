@@ -20,7 +20,6 @@ router.post("/register", (request, responce) => {
     });
 });
 
-
 router.post("/login", (request, responce) => {
   let { user, password } = request.body;
 
@@ -44,5 +43,32 @@ router.post("/login", (request, responce) => {
       responce.status(500).json(error);
     });
 });
+
+router.get('/users', isLoggedIn, (request, responce) => {
+  UserModel.listUsers()
+    .then(users => { responce.json(users); })
+    .catch( error => {
+      console.log(error);
+      responce.status(500).json( {error: "Get USERS Failed."} )
+    })
+});
+
+
+//MIDDLE WHERE
+function isLoggedIn(request, responce, next) {
+  if (request.headers.authorization) {
+    bcryptjs.hash(request.headers.authorization, 8, (error, hash) => {
+      if (error) {
+        responce.status(500).json({ oops: "it broke" });
+      } else {
+        //responce.status(200).json({ hash });
+        next();
+      }
+    });
+  } else {
+    responce.status(400).json({ error: "missing header" });
+  }
+  //next();
+}
 
 module.exports = router;
