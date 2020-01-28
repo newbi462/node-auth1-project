@@ -26,6 +26,10 @@ router.post("/login", (request, responce) => {
   UserModel.findByProp({ user }).first()//first() assumes user is the first find
     .then(userObj => {
       if (userObj && bcryptjs.compareSync(password, userObj.password)) {
+        console.log(password);
+        console.log(userObj.password);
+
+        request.session.loggedIn = "other"; // used in isLoggedIn() middleware
         // if (user) {
         // compare().then(match => {
         //   if (match) {
@@ -44,6 +48,23 @@ router.post("/login", (request, responce) => {
     });
 });
 
+//LOG OUT
+router.get("/logout", (request, responce) => {
+  if (request.session) {
+    request.session.destroy(error => {
+      if (error) {
+        responce.status(500).json({
+          you: "can checkout any time you like, but you can never leave!",
+        });
+      } else {
+        responce.status(200).json({ bye: "thanks for playing" });
+      }
+    });
+  } else {
+    responce.status(204);
+  }
+});
+
 router.get('/users', isLoggedIn, (request, responce) => {
   UserModel.listUsers()
     .then(users => { responce.json(users); })
@@ -56,19 +77,11 @@ router.get('/users', isLoggedIn, (request, responce) => {
 
 //MIDDLE WHERE
 function isLoggedIn(request, responce, next) {
-  if (request.headers.authorization) {
-    bcryptjs.hash(request.headers.authorization, 8, (error, hash) => {
-      if (error) {
-        responce.status(500).json({ oops: "it broke" });
-      } else {
-        //responce.status(200).json({ hash });
-        next();
-      }
-    });
+  if (request.session && request.session.loggedIn) {
+    next();
   } else {
-    responce.status(400).json({ error: "missing header" });
+    responce.status(401).json({ you: "shall not pass!" });
   }
-  //next();
 }
 
 module.exports = router;
